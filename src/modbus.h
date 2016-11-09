@@ -179,6 +179,8 @@ typedef enum
 MODBUS_API int modbus_set_slave(modbus_t* ctx, int slave);
 MODBUS_API int modbus_get_slave(modbus_t* ctx);
 MODBUS_API int modbus_set_error_recovery(modbus_t *ctx, modbus_error_recovery_mode error_recovery);
+MODBUS_API int modbus_get_max_send_retries(modbus_t *ctx);
+MODBUS_API int modbus_set_max_send_retries(modbus_t *ctx, int max_send_retries);
 MODBUS_API int modbus_set_socket(modbus_t *ctx, int s);
 MODBUS_API int modbus_get_socket(modbus_t *ctx);
 

@@ -2,7 +2,6 @@
  * Copyright © 2001-2011 Stéphane Raimbault <stephane.raimbault@gmail.com>
  *
  * SPDX-License-Identifier: LGPL-2.1+
- *
  * This library implements the Modbus protocol.
  * http://libmodbus.org/
  */
@@ -167,6 +166,7 @@ static int send_msg(modbus_t *ctx, uint8_t *msg, int msg_length)
 {
     int rc;
     int i;
+    int send_attempts = 0;
 
     msg_length = ctx->backend->send_msg_pre(msg, msg_length);
 
@@ -197,12 +197,19 @@ static int send_msg(modbus_t *ctx, uint8_t *msg, int msg_length)
             }
         }
     } while ((ctx->error_recovery & MODBUS_ERROR_RECOVERY_LINK) &&
-             rc == -1);
+             rc == -1 &&
+             send_attempts++ <= ctx->max_send_retries );
 
     if (rc > 0 && rc != msg_length) {
         errno = EMBBADDATA;
         return -1;
     }
+
+    if (send_attempts > ctx->max_send_retries) {
+        errno = EMBXSFAIL;
+        return -1;
+    }
+
 
     return rc;
 }
@@ -1558,6 +1565,7 @@ void _modbus_init_common(modbus_t *ctx)
 
     ctx->debug = FALSE;
     ctx->error_recovery = MODBUS_ERROR_RECOVERY_NONE;
+    ctx->max_send_retries = INT_MAX;
 
     ctx->response_timeout.tv_sec = 0;
     ctx->response_timeout.tv_usec = _RESPONSE_TIMEOUT;
@@ -1597,6 +1605,27 @@ int modbus_set_error_recovery(modbus_t *ctx,
 
     /* The type of modbus_error_recovery_mode is unsigned enum */
     ctx->error_recovery = (uint8_t) error_recovery;
+    return 0;
+}
+
+int modbus_get_max_send_retries(modbus_t *ctx)
+{
+    if (ctx == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return ctx->max_send_retries;
+}
+
+int modbus_set_max_send_retries(modbus_t *ctx, int max_send_retries)
+{
+    if (ctx == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    ctx->max_send_retries = max_send_retries;
     return 0;
 }
 
